@@ -1,0 +1,6 @@
+@OcrOrchestratorApi_HostAddress = http://localhost:5015
+
+GET {{OcrOrchestratorApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
