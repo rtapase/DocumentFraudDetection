@@ -29,8 +29,8 @@ namespace OcrOrchestratorApi.Controllers
             var config = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json")
                 .Build();
-            var orchestrator = new FraudDetectionOrchestrator(config);
-            var result = orchestrator.ProcessDocumentAsync("path/to/document.pdf").Result;
+            //var orchestrator = new FraudDetectionOrchestrator(config);
+            //var result = orchestrator.ProcessDocumentAsync("path/to/document.pdf").Result;
             // Handle the result as needed
             /*
             var orchestrator = new FraudDetectionOrchestrator(config);
@@ -44,3 +44,4 @@ namespace OcrOrchestratorApi.Controllers
 
         }
     }
+}

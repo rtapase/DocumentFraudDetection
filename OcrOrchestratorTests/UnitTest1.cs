@@ -34,7 +34,9 @@
         {
             // Arrange: use a synthetic payslip PDF placed in your test data folder
             string testFile = Path.Combine("TestData", "synthetic-payslip.pdf");
-            var orchestrator = new FraudDetectionOrchestrator(_config);
+            var orchestrator = new FraudDetectionOrchestrator(new MockOcrClient(),
+                new MockMetadataExtractor(),
+                new MockExplanationClient());
 
             // Act
             FraudAssessment assessment = await orchestrator.ProcessDocumentAsync(testFile);

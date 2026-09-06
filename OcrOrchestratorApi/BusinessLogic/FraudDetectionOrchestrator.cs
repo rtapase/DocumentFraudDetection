@@ -39,4 +39,22 @@
         }
     }
 
+    public class FraudAssessment
+    {
+        public string FileName { get; set; }
+        public Dictionary<string, string> ExtractedFields { get; set; }
+        public PdfMetadata Metadata { get; set; }
+        public int RiskScore { get; set; }
+        public string Explanation { get; set; }
+    }
+
+    public class PdfMetadata
+    {
+        public string Author { get; set; }
+        public string Creator { get; set; }
+        public string Producer { get; set; }
+        public string CreationDate { get; set; }
+        public string ModificationDate { get; set; }
+    }
+
 }
