@@ -13,7 +13,8 @@ namespace OcrOrchestratorTests
             var orchestrator = new FraudDetectionOrchestrator(
                 new MockOcrClient(),
                 new MockMetadataExtractor(),
-                new MockExplanationClient()
+                new MockExplanationClient(),
+                new MockTamperServiceClient()
             );
 
             var assessment = await orchestrator.ProcessDocumentAsync("fake.pdf");

@@ -31,6 +31,19 @@ namespace OcrOrchestratorTests
                 ModificationDate = "2026-08-01"
             };
         }
+
+        // Mock implementation of RenderPdfPagesToImages
+        public List<byte[]> RenderPdfPagesToImages(string filePath)
+        {
+            // Instead of rendering real pages, return synthetic byte arrays
+            var images = new List<byte[]>();
+
+            // Example: generate 2 fake "pages" as byte arrays
+            images.Add(Encoding.UTF8.GetBytes("MockImagePage1"));
+            images.Add(Encoding.UTF8.GetBytes("MockImagePage2"));
+
+            return images;
+        }
     }
 
     public class MockExplanationClient : IExplanationClient
@@ -40,5 +53,27 @@ namespace OcrOrchestratorTests
             return Task.FromResult($"Mock explanation: Salary={fields["Salary"]}, Score={score}, Producer={metadata.Producer}");
         }
     }
+
+    public class MockTamperServiceClient : ITamperServiceClient
+    {
+        public async Task<TamperResult> AnalyzeImagesAsync(List<byte[]> images)
+        {
+            // Simulate processing delay
+            await Task.Delay(50);
+
+            // Always return a deterministic result for testing
+            return new TamperResult
+            {
+                TamperFlag = true, // Pretend tampering was detected
+                Details = new List<Dictionary<string, double>>
+                {
+                    new Dictionary<string, double> { { "ela_score", 12.5 } },
+                    new Dictionary<string, double> { { "ela_score", 8.3 } }
+                }
+            };
+
+        }
+    }
+
 
 }

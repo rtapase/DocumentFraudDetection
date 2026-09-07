@@ -36,7 +36,8 @@
             string testFile = Path.Combine("TestData", "synthetic-payslip.pdf");
             var orchestrator = new FraudDetectionOrchestrator(new MockOcrClient(),
                 new MockMetadataExtractor(),
-                new MockExplanationClient());
+                new MockExplanationClient(),
+                new MockTamperServiceClient());
 
             // Act
             FraudAssessment assessment = await orchestrator.ProcessDocumentAsync(testFile);

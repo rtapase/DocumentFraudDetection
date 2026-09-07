@@ -40,6 +40,14 @@ builder.Services.AddSingleton<IExplanationClient>(sp =>
     return new AzureExplanationClient(client, deployment);
 });
 
+// Register TamperServiceClient with HttpClient
+builder.Services.AddHttpClient<TamperServiceClient>(client =>
+{
+    // Base URL of the Python tamper detection microservice
+    var baseUrl = builder.Configuration["TamperService:BaseUrl"];
+    client.BaseAddress = new Uri(baseUrl);
+});
+
 // Register orchestrator
 builder.Services.AddTransient<FraudDetectionOrchestrator>();
 
