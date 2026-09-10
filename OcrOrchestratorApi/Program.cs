@@ -40,6 +40,15 @@ builder.Services.AddSingleton<IExplanationClient>(sp =>
     return new AzureExplanationClient(client, deployment);
 });
 
+// Register a typed HttpClient implementation for ITamperServiceClient
+builder.Services.AddHttpClient<ITamperServiceClient, TamperServiceClient>(client =>
+{
+    var baseUrl = builder.Configuration["TamperService:BaseUrl"];
+    client.BaseAddress = new Uri(baseUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    
+});
+
 // Register TamperServiceClient with HttpClient
 builder.Services.AddHttpClient<TamperServiceClient>(client =>
 {
@@ -51,6 +60,8 @@ builder.Services.AddHttpClient<TamperServiceClient>(client =>
 // Register orchestrator
 builder.Services.AddTransient<FraudDetectionOrchestrator>();
 
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -59,8 +70,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 }
-// Register orchestrator
-builder.Services.AddTransient<FraudDetectionOrchestrator>();
 
 app.UseHttpsRedirection();
 

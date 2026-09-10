@@ -29,6 +29,15 @@ namespace OcrOrchestratorApi.Controllers
             var assessment = await _orchestrator.ProcessDocumentAsync(path);
             return Ok(assessment);
         }
+
+        [HttpGet("analyzedocument")]
+        public async Task<IActionResult> AnalyzeDocument()
+        {
+            var filePath = "D:\\Rahul\\Technical\\Development\\Data\\sample.pdf"; 
+            
+            var assessment = await _orchestrator.ProcessDocumentAsync(filePath);
+            return Ok(assessment);
+        }
     }
 
 }

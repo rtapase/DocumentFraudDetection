@@ -22,26 +22,5 @@ namespace OcrOrchestratorApi.Controllers
             })
             .ToArray();
         }
-
-        private void UseFraudDetectionOrchestrator()
-        {
-            // Example usage of FraudDetectionOrchestrator
-            var config = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json")
-                .Build();
-            //var orchestrator = new FraudDetectionOrchestrator(config);
-            //var result = orchestrator.ProcessDocumentAsync("path/to/document.pdf").Result;
-            // Handle the result as needed
-            /*
-            var orchestrator = new FraudDetectionOrchestrator(config);
-            var assessment = await orchestrator.ProcessDocumentAsync("sample-payslip.pdf");
-
-            Console.WriteLine($"File: {assessment.FileName}");
-            Console.WriteLine($"Risk Score: {assessment.RiskScore}");
-            Console.WriteLine("Explanation:");
-            Console.WriteLine(assessment.Explanation);
-            */
-
-        }
     }
 }
