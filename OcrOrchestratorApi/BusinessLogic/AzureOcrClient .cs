@@ -11,18 +11,36 @@ namespace OcrOrchestratorApi.BusinessLogic
         public async Task<Dictionary<string, string>> ExtractFieldsAsync(Stream documentStream)
         {
             //var op = await _client.AnalyzeDocumentAsync(WaitUntil.Completed, "prebuilt-document", BinaryData.FromStream(documentStream));
-            // Use the "prebuilt-read" model for OCR text extraction
+            // Use the "prebuilt-document" model for document analysis
             Operation<AnalyzeResult> analyzeResult = await _client.AnalyzeDocumentAsync(
                 WaitUntil.Completed,
-                "prebuilt-read",
+                "prebuilt-layout",
                 BinaryData.FromStream(documentStream)
             );
 
             var result = analyzeResult.Value;
             var fields = new Dictionary<string, string>();
-            foreach (var doc in result.Documents)
-                foreach (var field in doc.Fields)
-                    fields[field.Key] = field.Value.Content;
+            var table = result.Tables[0];
+            string key = String.Empty;
+            string value = String.Empty;
+            for(int i=0; i< table.RowCount; i++)
+            {               
+                foreach (var cell in table.Cells)
+                {
+                    if(cell.RowIndex == i)
+                    {
+                        if (cell.Content.Contains(":"))
+                        {
+                            key = cell.Content.Replace(":", "").Trim();                           
+                        }
+                        else
+                        {
+                            value = cell.Content.Trim();
+                        }
+                    }                                      
+                }
+                fields[key] = value;
+            }
             return fields;
         }
 
