@@ -29,7 +29,7 @@
                                 - Include the tamper detection result in your explanation.
                                 - If Salary field is present and Designation is Software Engineer, flag it as suspicious only if it is outside the range of 2000 to 5000.
                                 - If the document Created date and Modified date are different, flag it as suspicious.
-                                - If the Producer field is not 'Microsoft® Word', flag it as suspicious.
+                                - If the Producer field does not contain 'Microsoft® Word', flag it as suspicious.
                                 - If the Author field is not 'HR Dept', flag it as suspicious.
                                 - If the 'Date Of Issue' field is present and is in the future, only then flag it as suspicious.
                                 - Highlight anomalies (e.g., mismatched dates, suspicious producers, unusually high salary).

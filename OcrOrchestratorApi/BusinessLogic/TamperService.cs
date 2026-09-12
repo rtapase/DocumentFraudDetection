@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Drawing.Imaging;
     using System.IO;
     using System.Threading.Tasks;
 
@@ -42,34 +43,39 @@
         /// </summary>
         private double ComputeElaScore(byte[] imgBytes)
         {
-            try
+            using var originalStream = new MemoryStream(imgBytes);
+            using var originalBmp = new Bitmap(originalStream);
+
+            // Recompress at JPEG quality 90
+            using var recompressedStream = new MemoryStream();
+            var encoder = ImageCodecInfo.GetImageEncoders()
+                .First(c => c.FormatID == ImageFormat.Jpeg.Guid);
+            var encoderParams = new EncoderParameters(1);
+            encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 90L);
+            originalBmp.Save(recompressedStream, encoder, encoderParams);
+
+            recompressedStream.Position = 0;
+            using var recompressedBmp = new Bitmap(recompressedStream);
+
+            double diffSum = 0;
+            int count = 0;
+
+            for (int x = 0; x < originalBmp.Width; x += 10)
             {
-                using var ms = new MemoryStream(imgBytes);
-                using var bmp = new Bitmap(ms);
-
-                // Very simple heuristic: average pixel intensity variance
-                double variance = 0;
-                int count = 0;
-
-                for (int x = 0; x < bmp.Width; x += 10)
+                for (int y = 0; y < originalBmp.Height; y += 10)
                 {
-                    for (int y = 0; y < bmp.Height; y += 10)
-                    {
-                        var pixel = bmp.GetPixel(x, y);
-                        double intensity = (pixel.R + pixel.G + pixel.B) / 3.0;
-                        variance += Math.Abs(intensity - 128); // deviation from mid‑tone
-                        count++;
-                    }
-                }
+                    var o = originalBmp.GetPixel(x, y);
+                    var r = recompressedBmp.GetPixel(x, y);
 
-                return count > 0 ? variance / count : 0;
+                    double diff = Math.Abs(o.R - r.R) + Math.Abs(o.G - r.G) + Math.Abs(o.B - r.B);
+                    diffSum += diff;
+                    count++;
+                }
             }
-            catch
-            {
-                // If image parsing fails, return high score to simulate suspicion
-                return 50.0;
-            }
+
+            return count > 0 ? diffSum / count : 0;
         }
+
     }
 
     public class TamperResult
