@@ -1,12 +1,13 @@
 ﻿namespace OcrOrchestratorApi.BusinessLogic
 {
+    using Azure;
+    using Azure.AI.OpenAI;
+    using OpenAI.Chat;
     using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Azure;
-    using Azure.AI.OpenAI;
-    using OpenAI.Chat;
+    using System.Timers;
     public class OpenAiOrchestrator
     {
         private readonly AzureOpenAIClient _azureOpenAIClient;
@@ -29,10 +30,23 @@
             float temperature = 0.7f;
             int maxOutputTokens = 800;
             CancellationToken cancellationToken = default;
+            string userPrompt = $@"
+                                You are a fraud detection analyst. 
+                                Given the extracted fields, PDF metadata, and tamper detection results, 
+                                provide a clear fraud risk explanation.
+
+                                - Highlight anomalies (e.g., mismatched dates, suspicious producers, unusually high salary).
+                                - Connect each anomaly to fraud risk.
+                                - Conclude with a recommendation for manual review.
+
+                                Extracted Fields: {string.Join(", ", fields.Select(kvp => $"{kvp.Key}={kvp.Value}"))}
+                                Metadata: Author={metadata.Author}, Creator={metadata.Creator}, Producer={metadata.Producer}, Created={metadata.CreationDate}, Modified={metadata.ModificationDate}
+                                Risk Score: {score}";
+
             var messages = new List<ChatMessage>
             {
-                new SystemChatMessage("You are a fraud detection assistant."),
-                new UserChatMessage($"Fields: {string.Join(", ", fields)} | Metadata: {metadata.Producer} | Score: {score}")
+                new SystemChatMessage("You are a fraud detection analyst."),
+                new UserChatMessage(userPrompt)
             };
 
             var options = new ChatCompletionOptions
