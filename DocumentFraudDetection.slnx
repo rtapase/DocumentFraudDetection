@@ -1,5 +1,4 @@
 <Solution>
-  <Project Path="OcrOrchestrator/OcrOrchestrator.csproj" />
   <Project Path="OcrOrchestratorApi/OcrOrchestratorApi.csproj" />
   <Project Path="OcrOrchestratorTests/OcrOrchestratorTests.csproj" />
 </Solution>

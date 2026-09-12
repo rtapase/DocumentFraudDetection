@@ -1,5 +1,7 @@
 using Azure;
 using Azure.AI.DocumentIntelligence;
+using Azure.AI.OpenAI;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using OcrOrchestratorApi.BusinessLogic;
 using OpenAI;
 
@@ -31,11 +33,11 @@ builder.Services.AddSingleton(sp =>
 {
     var endpoint = config["AzureOpenAI:Endpoint"];
     var key = config["AzureOpenAI:ApiKey"];
-    return new OpenAIClient(key);
+    return new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(key));
 });
 builder.Services.AddSingleton<IExplanationClient>(sp =>
 {
-    var client = sp.GetRequiredService<OpenAIClient>();
+    var client = sp.GetRequiredService<AzureOpenAIClient>();
     var deployment = config["AzureOpenAI:DeploymentName"];
     return new AzureExplanationClient(client, deployment);
 });

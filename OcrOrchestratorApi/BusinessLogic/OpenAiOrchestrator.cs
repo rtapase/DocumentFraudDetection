@@ -7,16 +7,23 @@
     using Azure;
     using Azure.AI.OpenAI;
     using OpenAI.Chat;
-    public class AzureExplanationClient : IExplanationClient
+    public class OpenAiOrchestrator
     {
         private readonly AzureOpenAIClient _azureOpenAIClient;
         private readonly string _deployment;
-        public AzureExplanationClient(AzureOpenAIClient azureOpenAIClient, string deployment)
+
+
+        public OpenAiOrchestrator(string endpointUrl, string apiKey, string deployment)
         {
-            _azureOpenAIClient = azureOpenAIClient;
+            _azureOpenAIClient = new AzureOpenAIClient(new Uri(endpointUrl), new AzureKeyCredential(apiKey));
+            
             _deployment = deployment;
         }
 
+        /// <summary>
+        /// Sends a full conversation history (multi-turn) and returns the completion text.
+        /// Useful when you need to maintain context across multiple exchanges.
+        /// </summary>
         public async Task<string> GenerateExplanationAsync(Dictionary<string, string> fields, PdfMetadata metadata, int score)
         {
             float temperature = 0.7f;
@@ -41,5 +48,6 @@
                 ? completion.Content[0].Text
                 : string.Empty;
         }
+
     }
 }
