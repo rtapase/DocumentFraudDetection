@@ -48,13 +48,13 @@ namespace OcrOrchestratorTests
 
     public class MockExplanationClient : IExplanationClient
     {
-        public Task<string> GenerateExplanationAsync(Dictionary<string, string> fields, PdfMetadata metadata, int score)
+        public Task<string> GenerateExplanationAsync(Dictionary<string, string> fields, PdfMetadata metadata, int score, bool tamperDetected)
         {
-            return Task.FromResult($"Mock explanation: Salary={fields["Salary"]}, Score={score}, Producer={metadata.Producer}");
+            return Task.FromResult($"Mock explanation: Salary={fields["Salary"]}, Score={score}, Producer={metadata.Producer}, Tamper Detected={tamperDetected}");
         }
     }
 
-    public class MockTamperServiceClient : ITamperServiceClient
+    public class MockTamperServiceClient : ITamperService
     {
         public async Task<TamperResult> AnalyzeImagesAsync(List<byte[]> images)
         {

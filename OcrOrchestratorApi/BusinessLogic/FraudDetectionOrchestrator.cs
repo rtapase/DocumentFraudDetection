@@ -7,11 +7,11 @@ namespace OcrOrchestratorApi.BusinessLogic
         private readonly IOcrClient _ocr;
         private readonly IMetadataExtractor _metadata;
         private readonly IExplanationClient _explanation;
-        private readonly ITamperServiceClient _tamperClient;
+        private readonly ITamperService _tamperService;
 
-        public FraudDetectionOrchestrator(IOcrClient ocr, IMetadataExtractor metadata, IExplanationClient explanation, ITamperServiceClient tamperClient)
+        public FraudDetectionOrchestrator(IOcrClient ocr, IMetadataExtractor metadata, IExplanationClient explanation, ITamperService tamperService)
         {
-            _ocr = ocr; _metadata = metadata; _explanation = explanation; _tamperClient = tamperClient;
+            _ocr = ocr; _metadata = metadata; _explanation = explanation; _tamperService = tamperService;
         }
 
         public async Task<FraudAssessment> ProcessDocumentAsync(string filePath)
@@ -20,18 +20,18 @@ namespace OcrOrchestratorApi.BusinessLogic
             var fields = await _ocr.ExtractFieldsAsync(stream);
             var metadata = _metadata.Extract(filePath);
             var images = _metadata.RenderPdfPagesToImages(filePath);
-            //var tamperResult = await _tamperClient.AnalyzeImagesAsync(images);
-            var tamperResult = new TamperResult
-                                {
-                                    TamperFlag = true, // Pretend tampering was detected
-                                    Details = new List<Dictionary<string, double>>
-                                    {
-                                        new Dictionary<string, double> { { "ela_score", 12.5 } },
-                                        new Dictionary<string, double> { { "ela_score", 8.3 } }
-                                    }
-                                }; // Mock result for testing
+            var tamperResult = await _tamperService.AnalyzeImagesAsync(images);
+            //var tamperResult = new TamperResult
+            //                    {
+            //                        TamperFlag = true, // Pretend tampering was detected
+            //                        Details = new List<Dictionary<string, double>>
+            //                        {
+            //                            new Dictionary<string, double> { { "ela_score", 12.5 } },
+            //                            new Dictionary<string, double> { { "ela_score", 8.3 } }
+            //                        }
+            //                    }; // Mock result for testing
             var score = CalculateRiskScore(fields, metadata, tamperResult);
-            var explanation = await _explanation.GenerateExplanationAsync(fields, metadata, score);
+            var explanation = await _explanation.GenerateExplanationAsync(fields, metadata, score, tamperResult.TamperFlag);
 
             return new FraudAssessment
             {

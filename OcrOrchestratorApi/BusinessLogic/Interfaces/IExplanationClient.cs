@@ -2,6 +2,6 @@
 {
     public interface IExplanationClient
     {
-        Task<string> GenerateExplanationAsync(Dictionary<string, string> fields, PdfMetadata metadata, int score);
+        Task<string> GenerateExplanationAsync(Dictionary<string, string> fields, PdfMetadata metadata, int score, bool tamperDetected);
     }
 }

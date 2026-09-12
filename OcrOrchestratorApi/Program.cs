@@ -43,7 +43,7 @@ builder.Services.AddSingleton<IExplanationClient>(sp =>
 });
 
 // Register a typed HttpClient implementation for ITamperServiceClient
-builder.Services.AddHttpClient<ITamperServiceClient, TamperServiceClient>(client =>
+builder.Services.AddHttpClient<ITamperService, TamperServiceClient_old>(client =>
 {
     var baseUrl = builder.Configuration["TamperService:BaseUrl"];
     client.BaseAddress = new Uri(baseUrl);
@@ -51,13 +51,16 @@ builder.Services.AddHttpClient<ITamperServiceClient, TamperServiceClient>(client
     
 });
 
-// Register TamperServiceClient with HttpClient
-builder.Services.AddHttpClient<TamperServiceClient>(client =>
-{
-    // Base URL of the Python tamper detection microservice
-    var baseUrl = builder.Configuration["TamperService:BaseUrl"];
-    client.BaseAddress = new Uri(baseUrl);
-});
+// Register TamperServiceClient
+builder.Services.AddTransient<ITamperService, TamperService>();
+
+//// Register TamperServiceClient with HttpClient
+//builder.Services.AddHttpClient<TamperServiceClient_old>(client =>
+//{
+//    // Base URL of the Python tamper detection microservice
+//    var baseUrl = builder.Configuration["TamperService:BaseUrl"];
+//    client.BaseAddress = new Uri(baseUrl);
+//});
 
 // Register orchestrator
 builder.Services.AddTransient<FraudDetectionOrchestrator>();

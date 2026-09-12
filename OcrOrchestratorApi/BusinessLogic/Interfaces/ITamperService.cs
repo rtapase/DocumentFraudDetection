@@ -1,6 +1,6 @@
 ﻿namespace OcrOrchestratorApi.BusinessLogic
 {
-    public interface ITamperServiceClient
+    public interface ITamperService
     {
         Task<TamperResult> AnalyzeImagesAsync(List<byte[]> images);
     }

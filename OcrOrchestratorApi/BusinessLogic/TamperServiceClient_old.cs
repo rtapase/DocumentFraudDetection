@@ -2,11 +2,11 @@
 {
     using System.Net.Http.Json;
 
-    public class TamperServiceClient : ITamperServiceClient
+    public class TamperServiceClient_old : ITamperService
     {
         private readonly HttpClient _httpClient;
 
-        public TamperServiceClient(HttpClient httpClient)
+        public TamperServiceClient_old(HttpClient httpClient)
         {
             _httpClient = httpClient;
         }
@@ -25,10 +25,10 @@
         }
     }
 
-    public class TamperResult
-    {
-        public bool TamperFlag { get; set; }
-        public List<Dictionary<string, double>> Details { get; set; }
-    }
+    //public class TamperResult
+    //{
+    //    public bool TamperFlag { get; set; }
+    //    public List<Dictionary<string, double>> Details { get; set; }
+    //}
 
 }
