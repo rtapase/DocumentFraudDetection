@@ -2,21 +2,27 @@
     ViewData["Title"] = "Upload Document";
 }
 
-<h2>Upload Document for Fraud Analysis</h2>
-
-<form asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data">
-    <div>
-        <input type="file" name="file" />
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h4>Upload Document for Fraud Analysis</h4>
     </div>
-    <button type="submit">Analyze</button>
-</form>
+    <div class="card-body">
+        <form asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="file" class="form-label">Select PDF File</label>
+                <input type="file" class="form-control" id="file" name="file" />
+            </div>
+            <button type="submit" class="btn btn-success">Analyze</button>
+        </form>
 
-@if (!ViewData.ModelState.IsValid)
-{
-    <div style="color:red">
-        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        @if (!ViewData.ModelState.IsValid)
         {
-            <p>@error.ErrorMessage</p>
+            <div class="alert alert-danger mt-3">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <p>@error.ErrorMessage</p>
+                }
+            </div>
         }
     </div>
-}
+</div>

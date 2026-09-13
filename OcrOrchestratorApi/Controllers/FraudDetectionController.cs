@@ -22,7 +22,7 @@ namespace OcrOrchestratorApi.Controllers
         public async Task<IActionResult> Analyze(IFormFile file)
         {
             if (file == null || file.Length == 0) return BadRequest("No file uploaded");
-
+            var fileName = Path.GetFileName(file.FileName);
             var path = Path.GetTempFileName();
             using (var stream = System.IO.File.Create(path))
             {
@@ -30,6 +30,7 @@ namespace OcrOrchestratorApi.Controllers
             }
 
             var assessment = await _orchestrator.ProcessDocumentAsync(path);
+            assessment.FileName = fileName; // Set the original file name
             return Ok(assessment);
         }
 

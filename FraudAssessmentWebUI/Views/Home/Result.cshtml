@@ -4,19 +4,69 @@
     ViewData["Title"] = "Analysis Result";
 }
 
-<h2>Fraud Analysis Result</h2>
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-info text-white">
+        <h4>Fraud Analysis Result</h4>
+    </div>
+    <div class="card-body">
+        <!-- New section for Extracted Fields -->
+        <h5 class="mt-4">Extracted Fields</h5>
+        <table class="table table-bordered table-striped">
+            <thead class="table-light">
+                <tr>
+                    <th>Field Name</th>
+                    <th>Field Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.ExtractedFields != null && Model.ExtractedFields.Any())
+                {
+                    foreach (var field in Model.ExtractedFields)
+                    {
+                        <tr>
+                            <td>@field.Key</td>
+                            <td>@field.Value</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="2" class="text-muted">No fields extracted.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
 
-<p><strong>File:</strong> @Model.FileName</p>
-<p><strong>Risk Score:</strong> @Model.RiskScore</p>
-<p><strong>Tamper Detected:</strong> @(Model.TamperDetected ? "Yes" : "No")</p>
-<p><strong>Extracted Fields:</strong></p>
-<ul>
-    @foreach (var field in Model.ExtractedFields)
-    {
-        <li><strong>@field.Key:</strong> @field.Value</li>
-    }
-</ul>
-<p><strong>Explanation:</strong></p>
-<pre>@Model.Explanation</pre>
+        <dl class="row">
+            <dt class="col-sm-3">File</dt>
+            <dd class="col-sm-9">@Model.FileName</dd>
 
-<a asp-action="Index" asp-controller="Home">Upload another document</a>
+            <dt class="col-sm-3">Risk Score</dt>
+            <dd class="col-sm-9">
+                <span class="badge bg-warning text-dark">@Model.RiskScore</span>
+            </dd>
+
+            <dt class="col-sm-3">Tamper Detected</dt>
+            <dd class="col-sm-9">
+                @if (Model.TamperDetected)
+                {
+                    <span class="badge bg-danger">Yes</span>
+                }
+                else
+                {
+                    <span class="badge bg-success">No</span>
+                }
+            </dd>
+
+            <dt class="col-sm-3">Explanation</dt>
+            <dd class="col-sm-9">
+                <div class="alert alert-secondary">@Model.Explanation</div>
+            </dd>
+        </dl>
+
+        
+
+        <a asp-action="Index" asp-controller="Home" class="btn btn-primary">Upload another document</a>
+    </div>
+</div>
