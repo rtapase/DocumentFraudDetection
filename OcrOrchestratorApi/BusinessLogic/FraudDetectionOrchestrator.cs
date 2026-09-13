@@ -36,8 +36,8 @@ namespace OcrOrchestratorApi.BusinessLogic
             return new FraudAssessment
             {
                 FileName = Path.GetFileName(filePath),
+                TamperDetected = tamperResult.TamperFlag,
                 ExtractedFields = fields,
-                Metadata = metadata,
                 RiskScore = score,
                 Explanation = explanation
             };
@@ -58,8 +58,8 @@ namespace OcrOrchestratorApi.BusinessLogic
     public class FraudAssessment
     {
         public string FileName { get; set; }
+        public bool TamperDetected { get; set; }
         public Dictionary<string, string> ExtractedFields { get; set; }
-        public PdfMetadata Metadata { get; set; }
         public int RiskScore { get; set; }
         public string Explanation { get; set; }
     }

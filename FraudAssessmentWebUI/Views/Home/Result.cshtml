@@ -1,0 +1,22 @@
+﻿@model FraudAssessmentViewModel
+
+@{
+    ViewData["Title"] = "Analysis Result";
+}
+
+<h2>Fraud Analysis Result</h2>
+
+<p><strong>File:</strong> @Model.FileName</p>
+<p><strong>Risk Score:</strong> @Model.RiskScore</p>
+<p><strong>Tamper Detected:</strong> @(Model.TamperDetected ? "Yes" : "No")</p>
+<p><strong>Extracted Fields:</strong></p>
+<ul>
+    @foreach (var field in Model.ExtractedFields)
+    {
+        <li><strong>@field.Key:</strong> @field.Value</li>
+    }
+</ul>
+<p><strong>Explanation:</strong></p>
+<pre>@Model.Explanation</pre>
+
+<a asp-action="Index" asp-controller="Home">Upload another document</a>

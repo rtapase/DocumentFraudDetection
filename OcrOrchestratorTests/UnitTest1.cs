@@ -45,6 +45,7 @@
             // Assert
             Assert.NotNull(assessment);
             Assert.Equal("synthetic-payslip.pdf", assessment.FileName);
+            Assert.True(assessment.TamperDetected); // Tamper detected
             Assert.True(assessment.ExtractedFields.Count > 0); // OCR extracted something
             Assert.InRange(assessment.RiskScore, 0, 100);      // Score is valid
             Assert.False(string.IsNullOrWhiteSpace(assessment.Explanation)); // Explanation generated

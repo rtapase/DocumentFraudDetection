@@ -1,0 +1,22 @@
+﻿@{
+    ViewData["Title"] = "Upload Document";
+}
+
+<h2>Upload Document for Fraud Analysis</h2>
+
+<form asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data">
+    <div>
+        <input type="file" name="file" />
+    </div>
+    <button type="submit">Analyze</button>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div style="color:red">
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <p>@error.ErrorMessage</p>
+        }
+    </div>
+}
