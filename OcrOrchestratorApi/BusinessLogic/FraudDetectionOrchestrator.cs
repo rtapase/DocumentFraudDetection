@@ -7,9 +7,9 @@ namespace OcrOrchestratorApi.BusinessLogic
         private readonly IOcrClient _ocr;
         private readonly IMetadataExtractor _metadata;
         private readonly IExplanationClient _explanation;
-        private readonly ITamperService _tamperService;
+        private readonly TamperService _tamperService;
 
-        public FraudDetectionOrchestrator(IOcrClient ocr, IMetadataExtractor metadata, IExplanationClient explanation, ITamperService tamperService)
+        public FraudDetectionOrchestrator(IOcrClient ocr, IMetadataExtractor metadata, IExplanationClient explanation, TamperService tamperService)
         {
             _ocr = ocr; _metadata = metadata; _explanation = explanation; _tamperService = tamperService;
         }
@@ -20,7 +20,33 @@ namespace OcrOrchestratorApi.BusinessLogic
             var fields = await _ocr.ExtractFieldsAsync(stream);
             var metadata = _metadata.Extract(filePath);
             var images = _metadata.RenderPdfPagesToImages(filePath);
-            var tamperResult = await _tamperService.AnalyzeImagesAsync(images);
+
+            // Assumption: RenderPdfPagesToImages returns one byte[] per rendered page.
+            // If it actually returns Streams, System.Drawing.Image objects, or file
+            // paths, swap the .Select() below for the matching conversion.
+            var imageStreams = images
+                .Select((imageBytes, index) => (
+                    FileName: $"{Path.GetFileNameWithoutExtension(filePath)}_page{index + 1}.jpg",
+                    Content: (Stream)new MemoryStream(imageBytes)))
+                .ToList();
+
+            TamperAnalysisResponse tamperResult;
+            try
+            {
+                // TamperService.Analyze is synchronous and CPU-bound (JPEG re-encode +
+                // pixel diffing per page), so it's offloaded via Task.Run rather than
+                // awaited directly — that keeps it from blocking the thread that's
+                // running the rest of this async pipeline.
+                tamperResult = await Task.Run(() => _tamperService.Analyze(imageStreams));
+            }
+            finally
+            {
+                foreach (var (_, content) in imageStreams)
+                    content.Dispose();
+            }
+
+
+
             var score = CalculateRiskScore(fields, metadata, tamperResult);
             var explanation = await _explanation.GenerateExplanationAsync(fields, metadata, score, tamperResult.TamperFlag);
 
@@ -34,7 +60,7 @@ namespace OcrOrchestratorApi.BusinessLogic
             };
         }
 
-        private int CalculateRiskScore(Dictionary<string, string> fields, PdfMetadata metadata, TamperResult tamperResult)
+        private int CalculateRiskScore(Dictionary<string, string> fields, PdfMetadata metadata, TamperAnalysisResponse tamperResult)
         {
             int score = 0;
             if (metadata.CreationDate != metadata.ModificationDate) score += 20;

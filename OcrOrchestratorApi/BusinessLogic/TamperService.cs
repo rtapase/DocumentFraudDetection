@@ -1,87 +1,145 @@
-﻿namespace OcrOrchestratorApi.BusinessLogic
+// TamperService.cs
+//
+// C# port of tamper_service/app.py (Flask + OpenCV + custom ELA module).
+//
+// ComputeEla() below is a direct port of ela.py's compute_ela_score(): recompress
+// the image as JPEG at a fixed quality, take the pixel-wise absolute difference
+// against the original, and average it. np.mean(diff_array) over an (H, W, 3)
+// array is mathematically identical to averaging the R/G/B diffs per pixel and
+// then averaging across all pixels, which is what this does.
+//
+// Differences from ela.py, both intentional:
+//   - Default JPEG quality is 95 to match ela.py (not the 90 guessed earlier).
+//   - No temp file is written/deleted. ela.py round-trips through
+//     'temp_recompressed.jpg' because PIL needs a real file to force re-encoding;
+//     ImageSharp can encode straight to a MemoryStream, so the temp file (and its
+//     cleanup, and the risk of collisions across concurrent requests) is skipped.
+//   - The brightened visual mask (ImageEnhance.Brightness + enhance_factor) is not
+//     ported, since app.py's /analyze route only ever used the numeric score, not
+//     the image. Say the word if you want a GenerateVisualMask() method added back.
+//
+// NuGet dependency: SixLabors.ImageSharp
+//   dotnet add package SixLabors.ImageSharp
+
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.PixelFormats;
+
+namespace OcrOrchestratorApi.BusinessLogic
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Drawing;
-    using System.Drawing.Imaging;
-    using System.IO;
-    using System.Threading.Tasks;
-
-    public class TamperService : ITamperService
+    public class ImageAnalysisResult
     {
-        /// <summary>
-        /// Analyze a list of images (PDF pages rendered as byte arrays) for tampering.
-        /// </summary>
-        public async Task<TamperResult> AnalyzeImagesAsync(List<byte[]> images)
+        public double ElaScore { get; set; }
+        public string? Error { get; set; } // per-image error instead of failing the whole batch
+    }
+
+    public class TamperAnalysisResponse
+    {
+        public bool TamperFlag { get; set; }
+        public List<ImageAnalysisResult> Details { get; set; } = new();
+    }
+
+    public class TamperService
+    {
+        private readonly int _jpegQuality;
+        private readonly double _tamperThreshold;
+        private const long MaxImageBytes = 20 * 1024 * 1024; // 20 MB per image guard
+
+        public TamperService(int jpegQuality = 95, double tamperThreshold = 10.0)
         {
-            // Simulate processing delay
-            await Task.Delay(100);
+            if (jpegQuality < 1 || jpegQuality > 100)
+                throw new ArgumentOutOfRangeException(nameof(jpegQuality), "Must be between 1 and 100.");
 
-            var details = new List<Dictionary<string, double>>();
-            bool tamperFlag = false;
+            _jpegQuality = jpegQuality;
+            _tamperThreshold = tamperThreshold;
+        }
 
-            foreach (var imgBytes in images)
+        /// <summary>
+        /// Mirrors the Flask /analyze route: takes a batch of uploaded image streams,
+        /// scores each one, and flags the batch as tampered if any score exceeds the threshold.
+        /// Unlike the original, a bad/corrupt image is recorded as a per-item error
+        /// instead of throwing and killing the whole request.
+        /// </summary>
+        public TamperAnalysisResponse Analyze(IEnumerable<(string FileName, Stream Content)> images)
+        {
+            var details = new List<ImageAnalysisResult>();
+
+            if (images == null || !images.Any())
             {
-                double elaScore = ComputeElaScore(imgBytes);
-                details.Add(new Dictionary<string, double> { { "ela_score", elaScore } });
-
-                // Simple heuristic: flag tampering if score exceeds threshold
-                if (elaScore > 10.0)
-                    tamperFlag = true;
+                // The Flask version silently returns tamper_flag: false for a missing/empty
+                // 'images' field — surfacing it explicitly here instead.
+                throw new ArgumentException("No images were provided under the 'images' field.");
             }
 
-            return new TamperResult
+            foreach (var (fileName, content) in images)
+            {
+                try
+                {
+                    if (content.Length == 0)
+                        throw new InvalidDataException($"'{fileName}' is empty.");
+
+                    if (content.Length > MaxImageBytes)
+                        throw new InvalidDataException($"'{fileName}' exceeds the {MaxImageBytes / (1024 * 1024)} MB limit.");
+
+                    double score = ComputeEla(content);
+                    details.Add(new ImageAnalysisResult { ElaScore = score });
+                }
+                catch (Exception ex)
+                {
+                    details.Add(new ImageAnalysisResult { ElaScore = 0, Error = ex.Message });
+                }
+            }
+
+            bool tamperFlag = details.Any(d => d.Error == null && d.ElaScore > _tamperThreshold);
+
+            return new TamperAnalysisResponse
             {
                 TamperFlag = tamperFlag,
                 Details = details
             };
         }
 
-        /// <summary>
-        /// Compute a synthetic Error Level Analysis (ELA) score.
-        /// In production, replace with actual ELA algorithm.
-        /// </summary>
-        private double ComputeElaScore(byte[] imgBytes)
+        private double ComputeEla(Stream imageStream)
         {
-            using var originalStream = new MemoryStream(imgBytes);
-            using var originalBmp = new Bitmap(originalStream);
+            using var original = Image.Load<Rgb24>(imageStream);
 
-            // Recompress at JPEG quality 90
+            // Re-encode at a fixed JPEG quality and reload — this recompression
+            // step is what exposes the "error level" differences (mirrors
+            // ela.py's original.save(..., 'JPEG', quality=quality) + reopen).
             using var recompressedStream = new MemoryStream();
-            var encoder = ImageCodecInfo.GetImageEncoders()
-                .First(c => c.FormatID == ImageFormat.Jpeg.Guid);
-            var encoderParams = new EncoderParameters(1);
-            encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 90L);
-            originalBmp.Save(recompressedStream, encoder, encoderParams);
-
+            original.Save(recompressedStream, new JpegEncoder { Quality = _jpegQuality });
             recompressedStream.Position = 0;
-            using var recompressedBmp = new Bitmap(recompressedStream);
+            using var recompressed = Image.Load<Rgb24>(recompressedStream);
 
-            double diffSum = 0;
-            int count = 0;
+            if (original.Width != recompressed.Width || original.Height != recompressed.Height)
+                throw new InvalidOperationException("Recompressed image dimensions do not match the original.");
 
-            for (int x = 0; x < originalBmp.Width; x += 10)
+            double totalDiff = 0;
+            long pixelCount = (long)original.Width * original.Height;
+
+            original.ProcessPixelRows(recompressed, (origAccessor, recompAccessor) =>
             {
-                for (int y = 0; y < originalBmp.Height; y += 10)
+                for (int y = 0; y < origAccessor.Height; y++)
                 {
-                    var o = originalBmp.GetPixel(x, y);
-                    var r = recompressedBmp.GetPixel(x, y);
+                    var origRow = origAccessor.GetRowSpan(y);
+                    var recompRow = recompAccessor.GetRowSpan(y);
 
-                    double diff = Math.Abs(o.R - r.R) + Math.Abs(o.G - r.G) + Math.Abs(o.B - r.B);
-                    diffSum += diff;
-                    count++;
+                    for (int x = 0; x < origRow.Length; x++)
+                    {
+                        var o = origRow[x];
+                        var r = recompRow[x];
+
+                        int diffR = Math.Abs(o.R - r.R);
+                        int diffG = Math.Abs(o.G - r.G);
+                        int diffB = Math.Abs(o.B - r.B);
+
+                        totalDiff += (diffR + diffG + diffB) / 3.0;
+                    }
                 }
-            }
+            });
 
-            return count > 0 ? diffSum / count : 0;
+            // Average per-pixel error, roughly comparable in scale to the original's threshold of 10.
+            return totalDiff / pixelCount;
         }
-
     }
-
-    public class TamperResult
-    {
-        public bool TamperFlag { get; set; }
-        public List<Dictionary<string, double>> Details { get; set; }
-    }
-
 }

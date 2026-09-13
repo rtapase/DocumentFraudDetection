@@ -42,17 +42,12 @@ builder.Services.AddSingleton<IExplanationClient>(sp =>
     return new AzureExplanationClient(client, deployment);
 });
 
-// Register a typed HttpClient implementation for ITamperServiceClient
-builder.Services.AddHttpClient<ITamperService, TamperServiceClient_old>(client =>
-{
-    var baseUrl = builder.Configuration["TamperService:BaseUrl"];
-    client.BaseAddress = new Uri(baseUrl);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-    
-});
+// Register TamperService for DI. Singleton is fine here since it holds no
+// mutable state — quality/threshold are fixed at construction.
+builder.Services.AddSingleton(new TamperService(jpegQuality: 95, tamperThreshold: 10.0));
 
 // Register TamperServiceClient
-builder.Services.AddTransient<ITamperService, TamperService>();
+builder.Services.AddTransient<ITamperService, TamperService2>();
 
 //// Register TamperServiceClient with HttpClient
 //builder.Services.AddHttpClient<TamperServiceClient_old>(client =>
