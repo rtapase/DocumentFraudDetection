@@ -21,15 +21,6 @@ namespace OcrOrchestratorApi.BusinessLogic
             var metadata = _metadata.Extract(filePath);
             var images = _metadata.RenderPdfPagesToImages(filePath);
             var tamperResult = await _tamperService.AnalyzeImagesAsync(images);
-            //var tamperResult = new TamperResult
-            //                    {
-            //                        TamperFlag = true, // Pretend tampering was detected
-            //                        Details = new List<Dictionary<string, double>>
-            //                        {
-            //                            new Dictionary<string, double> { { "ela_score", 12.5 } },
-            //                            new Dictionary<string, double> { { "ela_score", 8.3 } }
-            //                        }
-            //                    }; // Mock result for testing
             var score = CalculateRiskScore(fields, metadata, tamperResult);
             var explanation = await _explanation.GenerateExplanationAsync(fields, metadata, score, tamperResult.TamperFlag);
 

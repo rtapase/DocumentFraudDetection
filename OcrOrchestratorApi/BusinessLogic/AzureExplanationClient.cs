@@ -32,7 +32,7 @@
                                 - If the Producer field does not contain 'Microsoft® Word', flag it as suspicious.
                                 - If the Author field is not 'HR Dept', flag it as suspicious.
                                 - For the 'Date Of Issue' field, consider the 'dd-MM-yyyy' date format.
-                                - If the 'Date Of Issue' field is present and is in the future, only then flag it as suspicious.
+                                - If the 'Date Of Issue' field is present and is in the future, only then flag it as suspicious. Consider the current date to be {DateTime.Today:dd-MM-yyyy} in your explanation.
                                 - Highlight anomalies (e.g., mismatched dates, suspicious producers, unusually high salary).
                                 - Connect each anomaly to fraud risk.
                                 - Conclude with a recommendation for manual review.
