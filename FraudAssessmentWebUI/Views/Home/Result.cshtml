@@ -42,6 +42,18 @@
             <dt class="col-sm-3">File</dt>
             <dd class="col-sm-9">@Model.FileName</dd>
 
+            <dt class="col-sm-3">Author</dt>
+            <dd class="col-sm-9">@Model.Author</dd>
+
+            <dt class="col-sm-3">Producer</dt>
+            <dd class="col-sm-9">@Model.Producer</dd>
+
+            <dt class="col-sm-3">Created Date</dt>
+            <dd class="col-sm-9">@Model.CreatedDate</dd>
+
+            <dt class="col-sm-3">Modified Date</dt>
+            <dd class="col-sm-9">@Model.ModifiedDate</dd>
+
             <dt class="col-sm-3">Risk Score</dt>
             <dd class="col-sm-9">
                 <span class="badge bg-warning text-dark">@Model.RiskScore</span>
@@ -61,7 +73,7 @@
 
             <dt class="col-sm-3">Explanation</dt>
             <dd class="col-sm-9">
-                <div class="alert alert-secondary">@Model.Explanation</div>
+                <div class="alert alert-secondary">@Model.Explanation.Replace("\n", "<br />") </div>
             </dd>
         </dl>
 

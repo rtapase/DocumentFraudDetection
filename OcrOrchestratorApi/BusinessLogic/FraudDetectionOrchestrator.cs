@@ -1,4 +1,6 @@
-﻿using System.Timers;
+﻿using System.Globalization;
+using System.Text.RegularExpressions;
+using System.Timers;
 
 namespace OcrOrchestratorApi.BusinessLogic
 {
@@ -17,8 +19,10 @@ namespace OcrOrchestratorApi.BusinessLogic
         public async Task<FraudAssessment> ProcessDocumentAsync(string filePath)
         {
             using var stream = File.OpenRead(filePath);
-            var fields = await _ocr.ExtractFieldsAsync(stream);
             var metadata = _metadata.Extract(filePath);
+            var createdDate = GetDateTime(metadata.CreationDate);
+            var modifiedDate = GetDateTime(metadata.ModificationDate);
+            var fields = await _ocr.ExtractFieldsAsync(stream);
             var images = _metadata.RenderPdfPagesToImages(filePath);
 
             // Assumption: RenderPdfPagesToImages returns one byte[] per rendered page.
@@ -53,6 +57,10 @@ namespace OcrOrchestratorApi.BusinessLogic
             return new FraudAssessment
             {
                 FileName = Path.GetFileName(filePath),
+                Author = metadata.Author,
+                Producer = metadata.Producer,
+                CreatedDate = createdDate,
+                ModifiedDate = modifiedDate,
                 TamperDetected = tamperResult.TamperFlag,
                 ExtractedFields = fields,
                 RiskScore = score,
@@ -60,12 +68,25 @@ namespace OcrOrchestratorApi.BusinessLogic
             };
         }
 
+        public static DateTime GetDateTime(string pdfDateString)
+        {
+            if (string.IsNullOrWhiteSpace(pdfDateString))
+                throw new ArgumentException("Input string cannot be null or empty.");
+
+            // 1. Clean the PDF prefix "D:" and trailing single quotes/characters
+            // Example: "D:20260913181507+05'30'" -> "20260913181507+0530"
+            string cleaned = Regex.Replace(pdfDateString, @"^[D:]+|'", "");
+            cleaned = cleaned.Replace("+530", "");
+            var date = DateTime.ParseExact(cleaned.Substring(0, 14), "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+            return date;
+        }
+
         private int CalculateRiskScore(Dictionary<string, string> fields, PdfMetadata metadata, TamperAnalysisResponse tamperResult)
         {
             int score = 0;
             if (metadata.CreationDate != metadata.ModificationDate) score += 20;
             if (fields.ContainsKey("Salary") && decimal.TryParse(fields["Salary"], out var salary) && salary > 8000) score += 25;
-            if (String.IsNullOrEmpty(metadata.Producer) || metadata.Producer?.Contains("Photoshop") == true) score += 40;
+            if (String.IsNullOrEmpty(metadata.Producer) || !metadata.Producer?.Contains("Word") == true) score += 40;
             if(String.IsNullOrEmpty(metadata.Author) || String.IsNullOrEmpty(metadata.Creator)) score += 25;
             if (fields.ContainsKey("Date of Issue") && DateTime.TryParse(fields["Date of Issue"], out var issueDate) && issueDate > DateTime.Now) score += 25;
             if (tamperResult.TamperFlag) score += 40;
@@ -77,6 +98,10 @@ namespace OcrOrchestratorApi.BusinessLogic
     public class FraudAssessment
     {
         public string FileName { get; set; }
+        public string Author { get; set; }
+        public string Producer { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public DateTime ModifiedDate { get; set; }
         public bool TamperDetected { get; set; }
         public Dictionary<string, string> ExtractedFields { get; set; }
         public int RiskScore { get; set; }
