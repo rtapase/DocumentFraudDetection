@@ -2,25 +2,49 @@
 //
 // C# port of tamper_service/app.py (Flask + OpenCV + custom ELA module).
 //
-// ComputeEla() below is a direct port of ela.py's compute_ela_score(): recompress
-// the image as JPEG at a fixed quality, take the pixel-wise absolute difference
-// against the original, and average it. np.mean(diff_array) over an (H, W, 3)
-// array is mathematically identical to averaging the R/G/B diffs per pixel and
-// then averaging across all pixels, which is what this does.
+// SCORING METHOD (updated): ComputeEla() now returns the MAX mean pixel diff
+// across fixed-size tiles, not the whole-image mean. The whole-image mean was
+// tested against a real payslip render (1654x2339px) and found structurally
+// incapable of detecting single-field tampering: a fully corrupted salary
+// field only covers ~0.2% of the page, but reaching the old threshold of 10
+// required ~3.9% of the entire page to be saturated. Tile-based max scoring
+// reacts to a small hot region instead of diluting it across the whole image.
 //
-// Differences from ela.py, both intentional:
-//   - Default JPEG quality is 95 to match ela.py (not the 90 guessed earlier).
-//   - No temp file is written/deleted. ela.py round-trips through
-//     'temp_recompressed.jpg' because PIL needs a real file to force re-encoding;
-//     ImageSharp can encode straight to a MemoryStream, so the temp file (and its
-//     cleanup, and the risk of collisions across concurrent requests) is skipped.
-//   - The brightened visual mask (ImageEnhance.Brightness + enhance_factor) is not
-//     ported, since app.py's /analyze route only ever used the numeric score, not
-//     the image. Say the word if you want a GenerateVisualMask() method added back.
+// HONEST LIMITATION, found via testing, worth keeping in mind: on crisp,
+// vector-rendered/scanned TEXT documents (like a payslip), ordinary untampered
+// text edges already produce local JPEG quantization noise of a similar
+// magnitude to a doctored text field — a max-tile score alone can't reliably
+// tell "edited number" from "just some other bold label" on this kind of
+// content. What DOES produce a strong, well-separated signal is genuinely
+// high-frequency content in the tampered region (e.g. a pasted photo, stamp,
+// signature scan, or anything with real texture/noise) — that's inherently
+// hard for JPEG to compress in a single pass, regardless of double-compression
+// tricks. Treat this scorer as a real signal for photographic/textured
+// tampering, and as a weak-to-absent signal for pure text edits — pair it with
+// metadata checks (already partly present elsewhere in this pipeline) for the
+// text-editing case specifically.
+//
+// Differences from ela.py, all intentional:
+//   - Default JPEG quality is 95 to match ela.py.
+//   - Scoring is tile-max instead of whole-image mean (see above). The default
+//     threshold changed from 10.0 (calibrated for whole-image mean) to 3.5
+//     (calibrated empirically against one sample document's natural noise
+//     ceiling of ~1.0-1.5 vs. a genuinely tampered region's ~7.1) — RECALIBRATE
+//     against your own corpus of clean documents before relying on this in
+//     production; this default is a starting point, not a universal constant.
+//   - No temp file is written/deleted (ImageSharp encodes straight to a
+//     MemoryStream; ela.py needed a real file because PIL forces re-encoding
+//     through disk).
+//   - The brightened visual mask (ImageEnhance.Brightness + enhance_factor) is
+//     not ported, since app.py's /analyze route only used the numeric score.
 //
 // NuGet dependency: SixLabors.ImageSharp
 //   dotnet add package SixLabors.ImageSharp
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
@@ -29,7 +53,7 @@ namespace OcrOrchestratorApi.BusinessLogic
 {
     public class ImageAnalysisResult
     {
-        public double ElaScore { get; set; }
+        public double ElaScore { get; set; } // now: max tile-mean pixel diff, not whole-image mean
         public string? Error { get; set; } // per-image error instead of failing the whole batch
     }
 
@@ -43,15 +67,19 @@ namespace OcrOrchestratorApi.BusinessLogic
     {
         private readonly int _jpegQuality;
         private readonly double _tamperThreshold;
+        private readonly int _tileSize;
         private const long MaxImageBytes = 20 * 1024 * 1024; // 20 MB per image guard
 
-        public TamperService(int jpegQuality = 95, double tamperThreshold = 10.0)
+        public TamperService(int jpegQuality = 95, double tamperThreshold = 3.5, int tileSize = 32)
         {
             if (jpegQuality < 1 || jpegQuality > 100)
                 throw new ArgumentOutOfRangeException(nameof(jpegQuality), "Must be between 1 and 100.");
+            if (tileSize < 1)
+                throw new ArgumentOutOfRangeException(nameof(tileSize), "Must be at least 1 pixel.");
 
             _jpegQuality = jpegQuality;
             _tamperThreshold = tamperThreshold;
+            _tileSize = tileSize;
         }
 
         /// <summary>
@@ -114,8 +142,10 @@ namespace OcrOrchestratorApi.BusinessLogic
             if (original.Width != recompressed.Width || original.Height != recompressed.Height)
                 throw new InvalidOperationException("Recompressed image dimensions do not match the original.");
 
-            double totalDiff = 0;
-            long pixelCount = (long)original.Width * original.Height;
+            int tilesX = (original.Width + _tileSize - 1) / _tileSize;
+            int tilesY = (original.Height + _tileSize - 1) / _tileSize;
+            var tileSums = new double[tilesX, tilesY];
+            var tileCounts = new long[tilesX, tilesY];
 
             original.ProcessPixelRows(recompressed, (origAccessor, recompAccessor) =>
             {
@@ -123,6 +153,7 @@ namespace OcrOrchestratorApi.BusinessLogic
                 {
                     var origRow = origAccessor.GetRowSpan(y);
                     var recompRow = recompAccessor.GetRowSpan(y);
+                    int tileY = y / _tileSize;
 
                     for (int x = 0; x < origRow.Length; x++)
                     {
@@ -132,14 +163,31 @@ namespace OcrOrchestratorApi.BusinessLogic
                         int diffR = Math.Abs(o.R - r.R);
                         int diffG = Math.Abs(o.G - r.G);
                         int diffB = Math.Abs(o.B - r.B);
+                        double pixelDiff = (diffR + diffG + diffB) / 3.0;
 
-                        totalDiff += (diffR + diffG + diffB) / 3.0;
+                        int tileX = x / _tileSize;
+                        tileSums[tileX, tileY] += pixelDiff;
+                        tileCounts[tileX, tileY] += 1;
                     }
                 }
             });
 
-            // Average per-pixel error, roughly comparable in scale to the original's threshold of 10.
-            return totalDiff / pixelCount;
+            // Score = the single worst tile's mean diff, not the whole image's
+            // mean — this is what lets a small localized splice register instead
+            // of being diluted across thousands of untouched background pixels.
+            double maxTileMean = 0;
+            for (int tx = 0; tx < tilesX; tx++)
+            {
+                for (int ty = 0; ty < tilesY; ty++)
+                {
+                    if (tileCounts[tx, ty] == 0) continue;
+                    double tileMean = tileSums[tx, ty] / tileCounts[tx, ty];
+                    if (tileMean > maxTileMean)
+                        maxTileMean = tileMean;
+                }
+            }
+
+            return maxTileMean;
         }
     }
 }

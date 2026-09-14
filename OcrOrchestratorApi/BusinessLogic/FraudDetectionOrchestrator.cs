@@ -65,7 +65,9 @@ namespace OcrOrchestratorApi.BusinessLogic
             int score = 0;
             if (metadata.CreationDate != metadata.ModificationDate) score += 20;
             if (fields.ContainsKey("Salary") && decimal.TryParse(fields["Salary"], out var salary) && salary > 8000) score += 25;
-            if (metadata.Producer?.Contains("Photoshop") == true) score += 40;
+            if (String.IsNullOrEmpty(metadata.Producer) || metadata.Producer?.Contains("Photoshop") == true) score += 40;
+            if(String.IsNullOrEmpty(metadata.Author) || String.IsNullOrEmpty(metadata.Creator)) score += 25;
+            if (fields.ContainsKey("Date of Issue") && DateTime.TryParse(fields["Date of Issue"], out var issueDate) && issueDate > DateTime.Now) score += 25;
             if (tamperResult.TamperFlag) score += 40;
 
             return Math.Min(100, score);
