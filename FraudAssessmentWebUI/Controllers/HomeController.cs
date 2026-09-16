@@ -8,10 +8,12 @@ namespace FraudAssessmentWebUI.Controllers
     public class HomeController : Controller
     {
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _configuration;
 
-        public HomeController(IHttpClientFactory httpClientFactory)
+        public HomeController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -28,9 +30,9 @@ namespace FraudAssessmentWebUI.Controllers
                 ModelState.AddModelError("", "Please select a file to upload.");
                 return View("Index");
             }
-
+            var apiBaseUrl = _configuration.GetValue<string>("OcrOrchestratorApi:BaseUrl");
             var client = _httpClientFactory.CreateClient();
-            client.BaseAddress = new Uri("http://localhost:57703/api/FraudDetection/Analyze"); // adjust to your API base URL
+            client.BaseAddress = new Uri($"{apiBaseUrl}/api/FraudDetection/Analyze"); // adjust to your API base URL
 
             using var content = new MultipartFormDataContent();
             using var stream = file.OpenReadStream();
