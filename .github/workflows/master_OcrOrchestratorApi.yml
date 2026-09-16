@@ -8,7 +8,7 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: OcrOrchestratorApi
-  DOTNET_VERSION: '8.x'
+  DOTNET_VERSION: '10.x'
   PROJECT_PATH: OcrOrchestratorApi/OcrOrchestratorApi.csproj
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
         run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
 
       - name: Publish
-        run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --no-build --output ${{ env.DOTNET_ROOT }}/myapp
+        run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --no-build --output "${{ env.DOTNET_ROOT }}/myapp"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
