@@ -34,7 +34,7 @@
                                 - For the 'Date Of Issue' field, consider the 'dd-MM-yyyy' date format.
                                 - If the 'Date Of Issue' field is present and is in the future, only then flag it as suspicious. Consider the current date to be {DateTime.Today:dd-MM-yyyy} in your explanation.
                                 - Highlight anomalies (e.g., mismatched dates, suspicious producers, unusually high salary).
-                                - Connect each anomaly to fraud risk.
+                                - Connect each anomaly to fraud risk. Format your explanation so that your observation for each anamoly is displayed on a new line and there is separation of 2 lines between each observation.
                                 - Conclude with a recommendation for manual review.
 
                                 Extracted Fields: {string.Join(", ", fields.Select(kvp => $"{kvp.Key}={kvp.Value}"))}
