@@ -44,7 +44,7 @@ builder.Services.AddSingleton<IExplanationClient>(sp =>
 
 // Register TamperService for DI. Singleton is fine here since it holds no
 // mutable state — quality/threshold are fixed at construction.
-builder.Services.AddSingleton(new TamperService(jpegQuality: 95, tamperThreshold: 10.0));
+builder.Services.AddSingleton(new TamperService(jpegQuality: 95, tamperThreshold: 2.7));
 
 // Register TamperServiceClient
 builder.Services.AddTransient<ITamperService, TamperService2>();

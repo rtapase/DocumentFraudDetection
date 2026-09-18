@@ -17,12 +17,10 @@ namespace OcrOrchestratorApi.BusinessLogic
         }
 
         public async Task<FraudAssessment> ProcessDocumentAsync(string filePath)
-        {
-            using var stream = File.OpenRead(filePath);
+        {   
             var metadata = _metadata.Extract(filePath);
             var createdDate = GetDateTime(metadata.CreationDate);
-            var modifiedDate = GetDateTime(metadata.ModificationDate);
-            var fields = await _ocr.ExtractFieldsAsync(stream);
+            var modifiedDate = GetDateTime(metadata.ModificationDate);            
             var images = _metadata.RenderPdfPagesToImages(filePath);
 
             // Assumption: RenderPdfPagesToImages returns one byte[] per rendered page.
@@ -48,8 +46,9 @@ namespace OcrOrchestratorApi.BusinessLogic
                 foreach (var (_, content) in imageStreams)
                     content.Dispose();
             }
-
-
+            
+            using var stream = File.OpenRead(filePath);
+            var fields = await _ocr.ExtractFieldsAsync(stream);
 
             var score = CalculateRiskScore(fields, metadata, tamperResult);
             var explanation = await _explanation.GenerateExplanationAsync(fields, metadata, score, tamperResult.TamperFlag);
