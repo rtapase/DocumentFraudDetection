@@ -23,23 +23,35 @@ namespace OcrOrchestratorApi.BusinessLogic
             var table = result.Tables[0];
             string key = String.Empty;
             string value = String.Empty;
-            for(int i=0; i< table.RowCount; i++)
-            {               
+            for (int i = 0; i < table.RowCount; i++)
+            {
+                key = String.Empty;
+                value = String.Empty;
+
                 foreach (var cell in table.Cells)
                 {
-                    if(cell.RowIndex == i)
+                    if (cell.RowIndex == i)
                     {
                         if (cell.Content.Contains(":"))
                         {
-                            key = cell.Content.Replace(":", "").Trim();                           
+                            key = cell.Content.Replace(":", "").Trim();
                         }
                         else
                         {
                             value = cell.Content.Trim();
                         }
-                    }                                      
+
+                        if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
+                        {
+                            fields[key] = value;
+                            key = String.Empty;
+                            value = String.Empty;
+                            break; // Move to the next row after finding a key-value pair
+                        }
+                    }
+
                 }
-                fields[key] = value;
+                
             }
             return fields;
         }

@@ -37,7 +37,7 @@ namespace OcrOrchestratorApi.Controllers
         [HttpGet("analyzedocument")]
         public async Task<IActionResult> AnalyzeDocument()
         {
-            var filePath = "D:\\Rahul\\Technical\\Development\\FraudDetectionTesting\\SamplePayslip_GDocs.pdf"; 
+            var filePath = "D:\\Rahul\\Technical\\Development\\DocumentFraudDetection_POC_Related\\FraudDetectionTesting\\SamplePayslip01.pdf"; 
             
             var assessment = await _orchestrator.ProcessDocumentAsync(filePath);
             return Ok(assessment);
