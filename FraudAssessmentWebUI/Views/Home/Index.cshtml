@@ -1,23 +1,54 @@
-﻿@{
+@{
     ViewData["Title"] = "Upload Document";
 }
 
-<div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
-        <h4>Upload Document for Fraud Analysis</h4>
+<div class="fs-hero">
+    <div>
+        <div class="fs-eyebrow">
+            <span class="fs-eyebrow-green">DOCUMENT INTAKE</span>
+            <span class="fs-eyebrow-rule"></span>
+            <span class="fs-eyebrow-dark">SECURE ANALYSIS</span>
+        </div>
+        <h1 class="fs-headline">
+            Know what your document<br />
+            <span class="accent">is really saying.</span>
+        </h1>
+        <p class="fs-subtext">
+            Upload a PDF and let FraudSignal inspect its content, metadata, and tamper signals in one pass.
+        </p>
     </div>
-    <div class="card-body">
-        <form asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data">
-            <div class="mb-3">
-                <label for="file" class="form-label">Select PDF File</label>
-                <input type="file" class="form-control" id="file" name="file" />
-            </div>
-            <button type="submit" class="btn btn-success">Analyze</button>
+    <div class="fs-step-marker">
+        <span class="fs-step-number">01</span>
+        <span class="fs-step-label">UPLOAD<br />TO BEGIN</span>
+    </div>
+</div>
+
+<hr class="fs-divider" />
+
+<div class="fs-body">
+    <div class="fs-left">
+        <div class="fs-section-label">START A NEW ASSESSMENT</div>
+        <h2 class="fs-section-title">Drop your document here</h2>
+        <p class="fs-section-desc">PDF files only. Your document is analyzed for text, metadata, and signs of manipulation.</p>
+
+        <form asp-action="Upload" asp-controller="Home" method="post" enctype="multipart/form-data" id="fsUploadForm">
+            <label for="file" class="fs-dropzone" id="fsDropzone">
+                <span class="fs-dropzone-icon">+</span>
+                <div class="fs-dropzone-title">Choose a PDF to analyze</div>
+                <div class="fs-dropzone-sub">or drag and drop it here</div>
+                <div class="fs-dropzone-filename" id="fsFileName">No file selected</div>
+            </label>
+            <input type="file" class="form-control" id="file" name="file" accept="application/pdf" style="display:none;" />
+
+            <button type="submit" class="fs-submit" id="fsSubmitBtn" disabled>
+                Analyze document
+                <span>&#8594;</span>
+            </button>
         </form>
 
         @if (!ViewData.ModelState.IsValid)
         {
-            <div class="alert alert-danger mt-3">
+            <div class="fs-error-panel">
                 @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
                 {
                     <p>@error.ErrorMessage</p>
@@ -25,4 +56,81 @@
             </div>
         }
     </div>
+
+    <div class="fs-right">
+        <div class="fs-section-label">WHAT WE CHECK</div>
+
+        <div class="fs-check-item">
+            <span class="fs-check-number">01</span>
+            <div>
+                <p class="fs-check-title">Document integrity</p>
+                <p class="fs-check-desc">Detect suspicious edits and tamper patterns.</p>
+            </div>
+        </div>
+        <div class="fs-check-item">
+            <span class="fs-check-number">02</span>
+            <div>
+                <p class="fs-check-title">Metadata signals</p>
+                <p class="fs-check-desc">Review authorship, producer, and timestamps.</p>
+            </div>
+        </div>
+        <div class="fs-check-item">
+            <span class="fs-check-number">03</span>
+            <div>
+                <p class="fs-check-title">Field extraction</p>
+                <p class="fs-check-desc">Pull key values into a readable summary.</p>
+            </div>
+        </div>
+
+        <div class="fs-footnote">
+            Files are processed for this assessment only.
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var fileInput = document.getElementById('file');
+            var dropzone = document.getElementById('fsDropzone');
+            var fileNameLabel = document.getElementById('fsFileName');
+            var submitBtn = document.getElementById('fsSubmitBtn');
+
+            function updateFileName(file) {
+                if (file) {
+                    fileNameLabel.textContent = file.name;
+                    submitBtn.disabled = false;
+                } else {
+                    fileNameLabel.textContent = 'No file selected';
+                    submitBtn.disabled = true;
+                }
+            }
+
+            fileInput.addEventListener('change', function () {
+                updateFileName(fileInput.files && fileInput.files[0]);
+            });
+
+            ['dragover', 'dragenter'].forEach(function (evt) {
+                dropzone.addEventListener(evt, function (e) {
+                    e.preventDefault();
+                    dropzone.classList.add('dragover');
+                });
+            });
+
+            ['dragleave', 'dragend'].forEach(function (evt) {
+                dropzone.addEventListener(evt, function () {
+                    dropzone.classList.remove('dragover');
+                });
+            });
+
+            dropzone.addEventListener('drop', function (e) {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                if (e.dataTransfer.files && e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    updateFileName(e.dataTransfer.files[0]);
+                }
+            });
+        })();
+    </script>
+}

@@ -1,21 +1,87 @@
-﻿@model FraudAssessmentViewModel
+@model FraudAssessmentViewModel
 
 @{
     ViewData["Title"] = "Analysis Result";
+
+    var riskCssClass = "fs-badge-green";
+    var riskLabel = "Low";
+    if (Model.RiskScore >= 70)
+    {
+        riskCssClass = "fs-badge-red";
+        riskLabel = "High";
+    }
+    else if (Model.RiskScore >= 35)
+    {
+        riskCssClass = "fs-badge-orange";
+        riskLabel = "Medium";
+    }
 }
 
-<div class="card shadow-sm mt-4">
-    <div class="card-header bg-info text-white">
-        <h4>Fraud Analysis Result</h4>
+<div class="fs-hero">
+    <div>
+        <div class="fs-eyebrow">
+            <span class="fs-eyebrow-green">ANALYSIS COMPLETE</span>
+            <span class="fs-eyebrow-rule"></span>
+            <span class="fs-eyebrow-dark">DOCUMENT REVIEWED</span>
+        </div>
+        <h1 class="fs-headline">
+            Here's what <span class="accent">@Model.FileName</span> is really saying.
+        </h1>
+        <p class="fs-subtext">
+            We reviewed the document's content, metadata, and structure for signs of manipulation.
+        </p>
     </div>
-    <div class="card-body">
-        <!-- New section for Extracted Fields -->
-        <h5 class="mt-4">Extracted Fields</h5>
-        <table class="table table-bordered table-striped">
-            <thead class="table-light">
+    <div class="fs-step-marker">
+        <span class="fs-badge @riskCssClass fs-badge-lg">@riskLabel risk</span>
+    </div>
+</div>
+
+<hr class="fs-divider" />
+
+<div class="fs-body">
+    <div class="fs-left">
+        <div class="fs-section-label">DOCUMENT METADATA</div>
+        <h2 class="fs-section-title">Assessment summary</h2>
+        <p class="fs-section-desc">Authorship, timestamps, and structural details pulled from the file.</p>
+
+        <dl class="fs-meta-list">
+            <dt>File</dt>
+            <dd>@Model.FileName</dd>
+
+            <dt>Author</dt>
+            <dd>@(string.IsNullOrWhiteSpace(Model.Author) ? "Unknown" : Model.Author)</dd>
+
+            <dt>Producer</dt>
+            <dd>@(string.IsNullOrWhiteSpace(Model.Producer) ? "Unknown" : Model.Producer)</dd>
+
+            <dt>Created</dt>
+            <dd>@Model.CreatedDate</dd>
+
+            <dt>Modified</dt>
+            <dd>@Model.ModifiedDate</dd>
+
+            <dt>Risk score</dt>
+            <dd><span class="fs-badge @riskCssClass">@Model.RiskScore</span></dd>
+
+            <dt>Tamper detected</dt>
+            <dd>
+                @if (Model.TamperDetected)
+                {
+                    <span class="fs-badge fs-badge-red">Yes</span>
+                }
+                else
+                {
+                    <span class="fs-badge fs-badge-green">No</span>
+                }
+            </dd>
+        </dl>
+
+        <div class="fs-section-label" style="margin-top:32px;">EXTRACTED FIELDS</div>
+        <table class="fs-table">
+            <thead>
                 <tr>
-                    <th>Field Name</th>
-                    <th>Field Value</th>
+                    <th>Field name</th>
+                    <th>Field value</th>
                 </tr>
             </thead>
             <tbody>
@@ -32,53 +98,143 @@
                 else
                 {
                     <tr>
-                        <td colspan="2" class="text-muted">No fields extracted.</td>
+                        <td colspan="2" class="fs-table-muted">No fields extracted.</td>
                     </tr>
                 }
             </tbody>
         </table>
 
-        <dl class="row">
-            <dt class="col-sm-3">File</dt>
-            <dd class="col-sm-9">@Model.FileName</dd>
+        <a asp-action="Index" asp-controller="Home" class="fs-submit fs-submit-link">
+            Upload another document
+            <span>&#8594;</span>
+        </a>
+    </div>
 
-            <dt class="col-sm-3">Author</dt>
-            <dd class="col-sm-9">@Model.Author</dd>
+    <div class="fs-right">
+        <div class="fs-section-label">EXPLANATION</div>
+        <h2 class="fs-section-title" style="font-size:1.1rem;">Why this result</h2>
+        <div class="fs-explanation">
+            @Html.Raw(Model.Explanation?.Replace("\n", "<br/>"))
+        </div>
 
-            <dt class="col-sm-3">Producer</dt>
-            <dd class="col-sm-9">@Model.Producer</dd>
+        <div class="fs-check-item" style="border-top:1px solid var(--panel-border); margin-top:24px; padding-top:18px;">
+            <span class="fs-check-number">01</span>
+            <div>
+                <p class="fs-check-title">Document integrity</p>
+                <p class="fs-check-desc">@(Model.TamperDetected ? "Tamper indicators were found in this file." : "No tamper indicators were found.")</p>
+            </div>
+        </div>
+        <div class="fs-check-item">
+            <span class="fs-check-number">02</span>
+            <div>
+                <p class="fs-check-title">Metadata signals</p>
+                <p class="fs-check-desc">Producer and timestamp fields reviewed above.</p>
+            </div>
+        </div>
+        <div class="fs-check-item">
+            <span class="fs-check-number">03</span>
+            <div>
+                <p class="fs-check-title">Field extraction</p>
+                <p class="fs-check-desc">@(Model.ExtractedFields != null && Model.ExtractedFields.Any() ? $"{Model.ExtractedFields.Count} field(s) pulled from the document." : "No fields were extracted.")</p>
+            </div>
+        </div>
 
-            <dt class="col-sm-3">Created Date</dt>
-            <dd class="col-sm-9">@Model.CreatedDate</dd>
-
-            <dt class="col-sm-3">Modified Date</dt>
-            <dd class="col-sm-9">@Model.ModifiedDate</dd>
-
-            <dt class="col-sm-3">Risk Score</dt>
-            <dd class="col-sm-9">
-                <span class="badge bg-warning text-dark">@Model.RiskScore</span>
-            </dd>
-
-            <dt class="col-sm-3">Tamper Detected</dt>
-            <dd class="col-sm-9">
-                @if (Model.TamperDetected)
-                {
-                    <span class="badge bg-danger">Yes</span>
-                }
-                else
-                {
-                    <span class="badge bg-success">No</span>
-                }
-            </dd>
-
-            <dt class="col-sm-3">Explanation</dt>
-            <dd class="col-sm-9">
-                <div class="alert alert-secondary">@Html.Raw(Model.Explanation?.Replace("\n", "<br/>")) </div>
-            </dd>
-        </dl>
-
-        
-
-        <a asp-action="Index" asp-controller="Home" class="btn btn-primary">Upload another document</a>
+        <div class="fs-footnote">
+            Files are processed for this assessment only.
+        </div>
     </div>
 </div>
+
+@section Styles {
+    <style>
+        .fs-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .fs-badge-lg {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        .fs-badge-green {
+            background: #E1EFE8;
+            color: var(--green);
+        }
+
+        .fs-badge-orange {
+            background: #FBE7DB;
+            color: var(--orange);
+        }
+
+        .fs-badge-red {
+            background: #FBE2DE;
+            color: #B3261E;
+        }
+
+        .fs-meta-list {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            row-gap: 12px;
+            column-gap: 16px;
+            margin: 0;
+        }
+
+        .fs-meta-list dt {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--ink-soft);
+        }
+
+        .fs-meta-list dd {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--ink);
+        }
+
+        .fs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+            font-size: 0.88rem;
+        }
+
+        .fs-table thead th {
+            text-align: left;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            color: var(--ink-soft);
+            border-bottom: 1px solid var(--ink);
+            padding: 0 0 8px;
+        }
+
+        .fs-table tbody td {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .fs-table-muted {
+            color: var(--ink-soft);
+            font-style: italic;
+        }
+
+        .fs-submit-link {
+            text-decoration: none;
+            margin-top: 28px;
+        }
+
+        .fs-explanation {
+            background: #EDEEE9;
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 16px;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            color: var(--ink);
+        }
+    </style>
+}
