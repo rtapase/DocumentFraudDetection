@@ -55,10 +55,10 @@
             <dd>@(string.IsNullOrWhiteSpace(Model.Producer) ? "Unknown" : Model.Producer)</dd>
 
             <dt>Created</dt>
-            <dd>@Model.CreatedDate</dd>
+            <dd>@Model.CreatedDate.ToString("dd/MM/yyyy HH:mm:ss")</dd>
 
             <dt>Modified</dt>
-            <dd>@Model.ModifiedDate</dd>
+            <dd>@Model.ModifiedDate.ToString("dd/MM/yyyy HH:mm:ss")</dd>
 
             <dt>Risk score</dt>
             <dd><span class="fs-badge @riskCssClass">@Model.RiskScore</span></dd>
